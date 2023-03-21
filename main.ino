@@ -5,7 +5,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <EEPROM.h>
 
-#define LED_PIN D2  // 連接 WS2812 LED 的腳位
+#define LED_PIN 4   // 連接 WS2812 LED 的腳位
 #define LED_COUNT 7 // LED 燈條的 LED 數量
 WiFiManager wm;
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -21,19 +21,16 @@ void setup()
     EEPROM.begin(4);
     strip.begin();
     strip.show();
-    pinMode(D7, INPUT);
-    while (digitalRead(D7) == HIGH)
-    {
-        flashWhitec();
-        if (digitalRead(D7) == LOW)
-        {
-            delay(1000);
-            if (digitalRead(D7) == LOW)
-            {
-                return;
-            }
+    pinMode(13, INPUT);
+    /*while (digitalRead(D7) == HIGH) {
+      flashWhitec();
+      if (digitalRead(D7) == LOW) {
+        delay(1000);
+        if (digitalRead(D7) == LOW) {
+          return;
         }
-    }
+      }
+    }*/
     light(0, 0, 255);
     wm.autoConnect("set_my_tally", "super_password");
     light(0, 0, 0);
@@ -89,7 +86,7 @@ void loop()
         {                                // 設定tally id
             int idbuffer = doc[0]["id"]; // id
             weeprom(idbuffer);
-            id = idbuffer;
+            id = reeprom();
             // Serial.print("setid:");
             // Serial.println(id);
         }
@@ -100,24 +97,32 @@ void loop()
         }
         else if (strcmp(get, "tally") == 0)
         {                            // 設定tally
-            int pgm = doc[0]["pgm"]; // pgm
             int pwv = doc[0]["pwv"]; // pwv
-            // Serial.printf("tally pgm:%d pwv:%d", pgm, pwv);
-            if ((id != pgm) && (id != pwv))
-            { // off
-                light(0, 0, 0);
+            JsonArray pgmArray = doc[0]["pgm"];
+            bool found = false; // 初始化为未找到
+            for (JsonVariant value : pgmArray)
+            {
+                int pgmValue = value; // 获取数组中的值
+                if (pgmValue == id)
+                {                 // 如果找到了A
+                    found = true; // 标记为已找到
+                    break;        // 停止查找
+                }
             }
-            if ((id == pgm) && (id != pwv))
+            if (found)
             { // pgm
                 light(255, 0, 0);
             }
-            if ((id != pgm) && (id == pwv))
-            { // pwv
-                light(0, 255, 0);
-            }
-            if ((id == pgm) && (id == pwv))
-            { // pgm+pwv
-                light(255, 255, 0);
+            else
+            { // no pgm
+                if (id == pwv)
+                {
+                    light(0, 255, 0);
+                }
+                else
+                {
+                    light(0, 0, 0);
+                }
             }
         }
     }
@@ -174,3 +179,4 @@ int reeprom()
 {
     return EEPROM.read(0);
 }
+s
